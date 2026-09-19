@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 # better-sqlite3 needs a C++ build toolchain to install on Alpine
 RUN apk add --no-cache python3 make g++
