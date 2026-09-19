@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: client-activity-manager
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: HOST
+        value: 0.0.0.0
+    disk:
+      name: data
+      mountPath: /app/data
+      sizeGB: 1
