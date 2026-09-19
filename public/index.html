@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Client Activity Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#122B4F;
+  --blue:#2A5DAD;
+  --blue-dark:#1E4685;
+  --blue-tint:#EEF3FB;
+  --blue-tint-2:#E2ECFA;
+  --paper:#FFFFFF;
+  --floor:#F5F8FC;
+  --line:#DFE7F1;
+  --text:#1B2A41;
+  --text-soft:#5C6E85;
+  --text-faint:#8A99AE;
+  --green:#1E8A5C;
+  --green-tint:#E5F5EC;
+  --amber:#C77D18;
+  --amber-tint:#FBF0DF;
+  --red:#C4432F;
+  --red-tint:#FBE9E6;
+  --shadow: 0 1px 2px rgba(18,43,79,.06), 0 6px 20px rgba(18,43,79,.06);
+  --radius: 14px;
+  --radius-sm: 10px;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+    --ink:#EAF0FB; --blue:#6F9CE8; --blue-dark:#8FB4EF; --blue-tint:#132038; --blue-tint-2:#16294A;
+    --paper:#0E1626; --floor:#0A101C; --line:#22314C; --text:#E8EEFA; --text-soft:#9AACC6; --text-faint:#6C7F9C;
+    --green:#4FCF98; --green-tint:#0E2A22; --amber:#EAB05A; --amber-tint:#332309; --red:#F17361; --red-tint:#301612;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 24px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#EAF0FB; --blue:#6F9CE8; --blue-dark:#8FB4EF; --blue-tint:#132038; --blue-tint-2:#16294A;
+  --paper:#0E1626; --floor:#0A101C; --line:#22314C; --text:#E8EEFA; --text-soft:#9AACC6; --text-faint:#6C7F9C;
+  --green:#4FCF98; --green-tint:#0E2A22; --amber:#EAB05A; --amber-tint:#332309; --red:#F17361; --red-tint:#301612;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 24px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--floor);
+  color:var(--text);
+  font-family:'Inter',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+h1,h2,h3,.num,.brand,.tab-label,.stat-value{font-family:'Space Grotesk',system-ui,sans-serif;}
+button{font-family:inherit;}
+a{color:inherit;}
+::selection{background:var(--blue-tint-2);}
+
+/* ---------- Layout shell ---------- */
+.shell{display:flex;min-height:100vh;}
+.sidebar{
+  width:230px;flex-shrink:0;background:var(--paper);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;padding:22px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 10px 22px;font-weight:700;font-size:17px;color:var(--ink);}
+.brand-mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--ink));flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;}
+.nav-group{display:flex;flex-direction:column;gap:2px;}
+.nav-item{
+  display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:var(--text-soft);
+  font-size:14px;font-weight:500;cursor:pointer;transition:background .15s,color .15s;border:none;background:none;text-align:left;width:100%;
+}
+.nav-item svg{width:18px;height:18px;flex-shrink:0;}
+.nav-item:hover{background:var(--blue-tint);color:var(--ink);}
+.nav-item.active{background:var(--blue-tint-2);color:var(--blue-dark);font-weight:600;}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:11px;font-weight:700;border-radius:20px;padding:1px 7px;min-width:18px;text-align:center;}
+.sidebar-foot{margin-top:auto;padding:10px 12px;font-size:12px;color:var(--text-faint);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;padding:16px 26px;
+  border-bottom:1px solid var(--line);background:var(--paper);position:sticky;top:0;z-index:20;
+}
+.topbar h1{font-size:19px;margin:0;font-weight:600;color:var(--ink);}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.icon-btn{
+  width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--paper);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-soft);position:relative;
+}
+.icon-btn:hover{background:var(--blue-tint);color:var(--blue-dark);}
+.icon-btn svg{width:18px;height:18px;}
+.hamburger{display:none;}
+.dot-badge{position:absolute;top:-3px;right:-3px;width:16px;height:16px;border-radius:50%;background:var(--red);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--paper);}
+.btn{
+  display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:10px;border:none;
+  font-size:14px;font-weight:600;cursor:pointer;transition:transform .1s, background .15s;white-space:nowrap;
+}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:var(--blue-dark);}
+.btn-ghost{background:var(--blue-tint);color:var(--blue-dark);}
+.btn-ghost:hover{background:var(--blue-tint-2);}
+.btn-outline{background:transparent;border:1px solid var(--line);color:var(--text-soft);}
+.btn-outline:hover{border-color:var(--blue);color:var(--blue-dark);}
+.btn-danger{background:var(--red-tint);color:var(--red);}
+.btn-danger:hover{background:var(--red);color:#fff;}
+.btn svg{width:15px;height:15px;}
+
+.content{padding:22px 26px 90px;max-width:1320px;width:100%;}
+.view{display:none;animation:fadein .25s ease;}
+.view.active{display:block;}
+@keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+/* ---------- Cards / grid ---------- */
+.grid-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:26px;}
+.stat-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);}
+.stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.stat-label{font-size:12.5px;color:var(--text-soft);font-weight:500;}
+.stat-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.stat-icon svg{width:16px;height:16px;}
+.stat-value{font-size:25px;font-weight:700;color:var(--ink);line-height:1;}
+.stat-sub{font-size:12px;color:var(--text-faint);margin-top:4px;}
+
+.section-head{display:flex;align-items:center;justify-content:space-between;margin:30px 0 14px;flex-wrap:wrap;gap:10px;}
+.section-head h2{font-size:16px;margin:0;color:var(--ink);}
+.section-sub{font-size:13px;color:var(--text-soft);margin-top:2px;}
+
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.empty{padding:46px 20px;text-align:center;color:var(--text-faint);}
+.empty svg{width:40px;height:40px;margin-bottom:10px;opacity:.5;}
+.empty div.t{font-weight:600;color:var(--text-soft);margin-bottom:4px;}
+
+/* Activity row card (dashboard) */
+.arow{display:flex;gap:14px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);}
+.arow:last-child{border-bottom:none;}
+.arow-time{width:76px;flex-shrink:0;text-align:center;}
+.arow-time .t1{font-weight:700;font-size:13.5px;color:var(--ink);}
+.arow-time .t2{font-size:11px;color:var(--text-faint);}
+.arow-main{flex:1;min-width:0;}
+.arow-main .client{font-weight:600;font-size:14px;color:var(--ink);}
+.arow-main .activity{font-size:13px;color:var(--text-soft);margin-top:1px;}
+.arow-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;}
+.arow-amt{text-align:right;flex-shrink:0;min-width:100px;}
+.arow-amt .amt{font-weight:700;font-size:13.5px;color:var(--ink);}
+.arow-amt .bal{font-size:11.5px;color:var(--red);}
+.arow-amt .bal.ok{color:var(--green);}
+.arow-actions{display:flex;gap:6px;flex-shrink:0;}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge.dot::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;}
+.b-green{background:var(--green-tint);color:var(--green);}
+.b-amber{background:var(--amber-tint);color:var(--amber);}
+.b-red{background:var(--red-tint);color:var(--red);}
+.b-blue{background:var(--blue-tint-2);color:var(--blue-dark);}
+.b-grey{background:var(--floor);color:var(--text-soft);}
+
+/* Table */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px;}
+thead th{text-align:left;font-size:11.5px;text-transform:none;color:var(--text-faint);font-weight:600;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--floor);white-space:nowrap;}
+tbody td{padding:13px 16px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--text);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--blue-tint);}
+.cell-name{font-weight:600;color:var(--ink);}
+.cell-sub{font-size:12px;color:var(--text-faint);}
+.row-actions{display:flex;gap:5px;}
+.mini-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--paper);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-soft);}
+.mini-btn:hover{background:var(--blue-tint);color:var(--blue-dark);border-color:var(--blue);}
+.mini-btn svg{width:14px;height:14px;}
+
+/* Filters row */
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
+.search-box{position:relative;flex:1;min-width:200px;max-width:340px;}
+.search-box input{width:100%;padding:10px 14px 10px 36px;border-radius:10px;border:1px solid var(--line);background:var(--paper);font-size:13.5px;color:var(--text);}
+.search-box svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text-faint);}
+select, .sel{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--paper);font-size:13.5px;color:var(--text);}
+input,textarea,select{font-family:inherit;outline:none;}
+input:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-tint-2);}
+
+/* Client cards */
+.client-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;}
+.client-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);cursor:pointer;transition:border-color .15s;}
+.client-card:hover{border-color:var(--blue);}
+.client-avatar{width:38px;height:38px;border-radius:10px;background:var(--blue-tint-2);color:var(--blue-dark);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;margin-bottom:10px;}
+.client-card .name{font-weight:600;font-size:14.5px;color:var(--ink);}
+.client-card .meta{font-size:12.5px;color:var(--text-soft);margin-top:2px;}
+.client-card .stats{display:flex;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
+.client-card .stats div{font-size:11.5px;color:var(--text-faint);}
+.client-card .stats b{display:block;font-size:14px;color:var(--ink);font-family:'Space Grotesk';}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(10,20,35,.45);display:none;align-items:flex-start;justify-content:center;z-index:100;padding:5vh 16px;overflow-y:auto;backdrop-filter:blur(2px);}
+.overlay.active{display:flex;}
+.modal{background:var(--paper);border-radius:16px;width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.25);margin-bottom:5vh;}
+.modal.wide{max-width:760px;}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--line);}
+.modal-head h3{margin:0;font-size:16px;color:var(--ink);}
+.modal-close{width:32px;height:32px;border-radius:9px;border:none;background:var(--floor);color:var(--text-soft);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-body{padding:20px 22px;max-height:70vh;overflow-y:auto;}
+.modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--line);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-grid.one{grid-template-columns:1fr;}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field.span2{grid-column:1/-1;}
+.field label{font-size:12.5px;font-weight:600;color:var(--text-soft);}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:var(--floor);font-size:13.5px;color:var(--text);}
+.field textarea{resize:vertical;min-height:64px;}
+.hint{font-size:11.5px;color:var(--text-faint);}
+.reminder-opts{display:flex;flex-direction:column;gap:8px;}
+.reminder-opts label{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text);font-weight:400;cursor:pointer;}
+.reminder-opts input{width:16px;height:16px;accent-color:var(--blue);}
+
+/* Reminder card */
+.reminder-card{border-left:3px solid var(--red);background:var(--red-tint);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+.reminder-card.upcoming{border-left-color:var(--amber);background:var(--amber-tint);}
+.reminder-card .rtitle{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--red);margin-bottom:6px;}
+.reminder-card.upcoming .rtitle{color:var(--amber);}
+.reminder-card .rclient{font-weight:600;color:var(--ink);font-size:14px;}
+.reminder-card .ractivity{font-size:13px;color:var(--text-soft);}
+.reminder-card .rmeta{font-size:12.5px;color:var(--text-faint);margin-top:4px;}
+.reminder-card .rbadges{margin-top:8px;display:flex;gap:6px;}
+
+/* Calendar */
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.cal-nav{display:flex;align-items:center;gap:8px;}
+.cal-title{font-weight:600;font-size:15px;color:var(--ink);min-width:150px;text-align:center;}
+.cal-viewtabs{display:flex;gap:4px;background:var(--floor);border-radius:10px;padding:3px;}
+.cal-viewtabs button{padding:7px 14px;border-radius:8px;border:none;background:none;font-size:13px;font-weight:600;color:var(--text-soft);cursor:pointer;}
+.cal-viewtabs button.active{background:var(--paper);color:var(--blue-dark);box-shadow:var(--shadow);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.cal-dow{text-align:center;font-size:11px;color:var(--text-faint);font-weight:600;padding:4px 0 8px;}
+.cal-cell{background:var(--paper);border:1px solid var(--line);border-radius:10px;min-height:90px;padding:8px;cursor:pointer;transition:border-color .15s;}
+.cal-cell:hover{border-color:var(--blue);}
+.cal-cell.other{opacity:.4;}
+.cal-cell.today{border-color:var(--blue);background:var(--blue-tint);}
+.cal-daynum{font-size:12.5px;font-weight:600;color:var(--text-soft);margin-bottom:5px;}
+.cal-cell.today .cal-daynum{color:var(--blue-dark);}
+.cal-dots{display:flex;flex-direction:column;gap:3px;}
+.cal-dotitem{font-size:10.5px;padding:2px 6px;border-radius:5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cal-week-row{display:flex;flex-direction:column;gap:10px;}
+.cal-week-day{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 16px;}
+.cal-week-day .wd-head{font-size:12.5px;font-weight:700;color:var(--text-soft);margin-bottom:8px;display:flex;justify-content:space-between;}
+.cal-week-day.today .wd-head{color:var(--blue-dark);}
+
+/* client profile */
+.profile-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
+.profile-id{display:flex;gap:14px;align-items:center;}
+.profile-avatar{width:52px;height:52px;border-radius:14px;background:var(--blue-tint-2);color:var(--blue-dark);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:19px;}
+.profile-name{font-size:19px;font-weight:700;color:var(--ink);}
+.profile-meta{font-size:13px;color:var(--text-soft);margin-top:2px;}
+.profile-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+.pstat{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+.pstat .l{font-size:11.5px;color:var(--text-faint);margin-bottom:4px;}
+.pstat .v{font-size:18px;font-weight:700;color:var(--ink);}
+
+/* toast */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:10px;font-size:13.5px;font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* bottom nav (mobile) */
+.bottom-nav{display:none;}
+
+/* Reports */
+.report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px;}
+
+.mobile-only{display:none;}
+
+@media (max-width:900px){
+  .sidebar{display:none;}
+  .content{padding:16px 14px 90px;}
+  .topbar{padding:12px 14px;}
+  .hamburger{display:flex;}
+  .mobile-only{display:block;}
+  .bottom-nav{
+    display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--paper);border-top:1px solid var(--line);
+    z-index:50;padding:6px 4px calc(6px + env(safe-area-inset-bottom));justify-content:space-around;
+  }
+  .bottom-nav button{background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-faint);font-size:10.5px;padding:6px 4px;cursor:pointer;flex:1;min-width:0;}
+  .bottom-nav button svg{width:19px;height:19px;}
+  .bottom-nav button.active{color:var(--blue-dark);}
+  .content{padding-bottom:80px;}
+  .form-grid{grid-template-columns:1fr;}
+  .arow{flex-wrap:wrap;}
+  .arow-amt{text-align:left;}
+  .drawer{position:fixed;top:0;left:0;bottom:0;width:250px;background:var(--paper);z-index:150;transform:translateX(-100%);transition:transform .2s;box-shadow:0 0 30px rgba(0,0,0,.2);padding:22px 14px;overflow-y:auto;}
+  .drawer.open{transform:translateX(0);}
+  .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:140;display:none;}
+  .drawer-overlay.active{display:block;}
+}
+@media (min-width:901px){
+  .drawer{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div id="loadingOverlay" style="position:fixed;inset:0;background:var(--floor);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:500;">
+  <div style="width:34px;height:34px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--blue);animation:spin 0.8s linear infinite;"></div>
+  <div style="font-size:13.5px;color:var(--text-soft);font-weight:500;">Connecting to your data…</div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg);}}</style>
+
+<div class="shell">
+  <!-- Desktop Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="brand"><div class="brand-mark">CA</div>Client Activity Manager</div>
+    <div class="nav-group" id="navGroup"></div>
+    <div class="sidebar-foot" id="sidebarFoot">Saved to your server's database.</div>
+  </nav>
+
+  <!-- Mobile Drawer -->
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+  <nav class="drawer" id="drawer">
+    <div class="brand"><div class="brand-mark">CA</div>Client Activity Manager</div>
+    <div class="nav-group" id="navGroupMobile"></div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="icon-btn hamburger" id="hamburgerBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+        </button>
+        <h1 id="pageTitle">Dashboard</h1>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" id="notifBtn" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke-linecap="round"/></svg>
+          <span class="dot-badge mobile-only" id="notifDotMobile" style="display:none;"></span>
+          <span class="dot-badge" id="notifDot" style="display:none;"></span>
+        </button>
+        <button class="btn btn-primary" id="addActivityBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+          <span class="mobile-only" style="display:none;">Add</span>
+          <span id="addActivityLabel">Add Activity</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="content" id="content">
+      <!-- Views injected here -->
+    </div>
+  </div>
+</div>
+
+<!-- Bottom nav mobile -->
+<div class="bottom-nav" id="bottomNav"></div>
+
+<!-- Notification panel -->
+<div class="overlay" id="notifOverlay">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head"><h3>Notifications</h3><button class="modal-close" data-close="notifOverlay">&times;</button></div>
+    <div class="modal-body" id="notifList"></div>
+  </div>
+</div>
+
+<!-- Client Modal -->
+<div class="overlay" id="clientOverlay">
+  <div class="modal">
+    <div class="modal-head"><h3 id="clientModalTitle">Add Client</h3><button class="modal-close" data-close="clientOverlay">&times;</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="clientId">
+      <div class="form-grid">
+        <div class="field span2"><label>Full name *</label><input id="c_name" placeholder="e.g. Kembabazi Edith"></div>
+        <div class="field"><label>Phone number *</label><input id="c_phone" placeholder="e.g. 0772 123 456"></div>
+        <div class="field"><label>Email (optional)</label><input id="c_email" placeholder="name@email.com"></div>
+        <div class="field span2"><label>Institution / company (optional)</label><input id="c_institution" placeholder="e.g. Makerere University"></div>
+        <div class="field span2"><label>Notes</label><textarea id="c_notes" placeholder="Anything worth remembering about this client"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" data-close="clientOverlay">Cancel</button>
+      <button class="btn btn-primary" id="saveClientBtn">Save client</button>
+    </div>
+  </div>
+</div>
+
+<!-- Activity Modal -->
+<div class="overlay" id="activityOverlay">
+  <div class="modal wide">
+    <div class="modal-head"><h3 id="activityModalTitle">Add Activity</h3><button class="modal-close" data-close="activityOverlay">&times;</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="activityId">
+      <div class="form-grid">
+        <div class="field span2">
+          <label>Client *</label>
+          <select id="a_client"></select>
+        </div>
+        <div class="field span2"><label>Activity name *</label><input id="a_name" placeholder="e.g. Scientific Writing Coursework"></div>
+        <div class="field span2"><label>Description</label><textarea id="a_desc" placeholder="What this activity involves"></textarea></div>
+        <div class="field"><label>Activity date *</label><input type="date" id="a_date"></div>
+        <div class="field"><label>Submission deadline</label><input type="datetime-local" id="a_deadline"></div>
+        <div class="field"><label>Start time *</label><input type="time" id="a_start"></div>
+        <div class="field"><label>End time *</label><input type="time" id="a_end"></div>
+        <div class="field"><label>Amount charged (UGX) *</label><input type="number" min="0" id="a_amount" placeholder="0"></div>
+        <div class="field"><label>Amount already paid (UGX)</label><input type="number" min="0" id="a_paid" placeholder="0"></div>
+        <div class="field"><label>Submission status</label>
+          <select id="a_substatus">
+            <option>Not Started</option><option>In Progress</option><option>Submitted</option><option>Late Submission</option>
+          </select>
+        </div>
+        <div class="field"><label>Payment status</label>
+          <div class="hint" style="margin-top:8px;">Calculated automatically from amount vs. paid</div>
+        </div>
+        <div class="field span2">
+          <label>Reminders</label>
+          <div class="reminder-opts">
+            <label><input type="checkbox" value="1_day_before"> 1 day before activity</label>
+            <label><input type="checkbox" value="3_hours_before"> 3 hours before activity</label>
+            <label><input type="checkbox" value="1_hour_before_deadline"> 1 hour before deadline</label>
+            <label><input type="checkbox" value="at_deadline"> At deadline</label>
+            <label><input type="checkbox" value="after_deadline"> After deadline, if not submitted</label>
+          </div>
+        </div>
+        <div class="field span2"><label>Notes</label><textarea id="a_notes" placeholder="Anything else about this activity"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" data-close="activityOverlay">Cancel</button>
+      <button class="btn btn-primary" id="saveActivityBtn">Save activity</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="overlay" id="paymentOverlay">
+  <div class="modal">
+    <div class="modal-head"><h3>Record Payment</h3><button class="modal-close" data-close="paymentOverlay">&times;</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="p_activity_id">
+      <div id="p_summary" style="margin-bottom:16px;padding:12px 14px;background:var(--blue-tint);border-radius:10px;font-size:13px;color:var(--text-soft);"></div>
+      <div class="form-grid">
+        <div class="field"><label>Amount received (UGX) *</label><input type="number" min="0" id="p_amount"></div>
+        <div class="field"><label>Payment date *</label><input type="date" id="p_date"></div>
+        <div class="field"><label>Payment method</label>
+          <select id="p_method"><option>Cash</option><option>Mobile Money</option><option>Bank Transfer</option><option>Other</option></select>
+        </div>
+        <div class="field span2"><label>Notes</label><input id="p_notes" placeholder="Optional"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" data-close="paymentOverlay">Cancel</button>
+      <button class="btn btn-primary" id="savePaymentBtn">Record payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Activity detail modal -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal wide">
+    <div class="modal-head"><h3>Activity details</h3><button class="modal-close" data-close="detailOverlay">&times;</button></div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-foot" id="detailFoot"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   DATA LAYER
+========================================================= */
+const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
+const todayStr = () => fmtDate(new Date());
+function fmtDate(d){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+function addDays(dateStr, n){ const d = new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return fmtDate(d); }
+
+let DB = {clients:[], activities:[], payments:[]};
+let appStarted = false;
+let pollTimer = null;
+
+function showLoading(on){
+  const el = document.getElementById('loadingOverlay');
+  if(el) el.style.display = on ? 'flex' : 'none';
+}
+
+const API_BASE = '/api';
+async function apiGet(path){
+  const r = await fetch(API_BASE+path);
+  if(!r.ok){ const body = await r.json().catch(()=>({})); throw new Error(body.error || r.statusText || ('HTTP '+r.status)); }
+  return r.json();
+}
+async function apiSend(method, path, body){
+  const opts = {method};
+  if(body !== undefined){ opts.headers = {'Content-Type':'application/json'}; opts.body = JSON.stringify(body); }
+  const r = await fetch(API_BASE+path, opts);
+  if(!r.ok){ const b = await r.json().catch(()=>({})); throw new Error(b.error || r.statusText || ('HTTP '+r.status)); }
+  return r.json().catch(()=>({}));
+}
+
+async function loadAll(){
+  const data = await apiGet('/all');
+  DB.clients = data.clients || [];
+  DB.activities = data.activities || [];
+  DB.payments = data.payments || [];
+}
+
+async function initApp(){
+  showLoading(true);
+  try{
+    await loadAll();
+    appStarted = true;
+    showLoading(false);
+    goTo('dashboard');
+    startPolling();
+  }catch(e){
+    showLoading(false);
+    document.getElementById('pageTitle').textContent = 'Connection error';
+    document.getElementById('content').innerHTML = connectionErrorHtml(e);
+  }
+}
+function connectionErrorHtml(e){
+  return `<div class="panel" style="padding:44px 24px;text-align:center;">
+    <div style="font-weight:600;color:var(--ink);margin-bottom:8px;font-size:15px;">Can't reach the server</div>
+    <div style="color:var(--text-soft);font-size:13.5px;margin-bottom:18px;">${escapeHtml(e.message||'Unknown error')}<br>Make sure the server is running (<code>npm start</code>) and reload this page.</div>
+    <button class="btn btn-primary" onclick="location.reload()">Reload</button>
+  </div>`;
+}
+function startPolling(){
+  if(pollTimer) clearInterval(pollTimer);
+  // Light polling keeps multiple open tabs/devices roughly in sync without
+  // needing websockets. Failures here are transient network blips, so we
+  // just skip that cycle rather than surface an error.
+  pollTimer = setInterval(async ()=>{
+    try{ await loadAll(); renderView(); }catch(e){ /* ignore transient poll errors */ }
+  }, 15000);
+}
+
+/* Write helpers: every mutation goes straight to the server's REST API,
+   then reloads the local cache from it so the UI always reflects what is
+   actually saved in the SQLite database. */
+async function dbAdd(collection, data){
+  const res = await apiSend('POST', '/'+collection, data);
+  await loadAll(); renderView();
+  return {id: res.id};
+}
+async function dbSet(collection, id, data){
+  await apiSend('PUT', '/'+collection+'/'+id, data);
+  await loadAll(); renderView();
+}
+async function dbUpdate(collection, id, data){
+  await apiSend('PATCH', '/'+collection+'/'+id, data);
+  await loadAll(); renderView();
+}
+async function dbDelete(collection, id){
+  await apiSend('DELETE', '/'+collection+'/'+id);
+  await loadAll(); renderView();
+}
+async function dbDeleteAll(collection){
+  await apiSend('DELETE', '/'+collection);
+  await loadAll(); renderView();
+}
+function dbErrorMessage(e){
+  return (e && e.message) || 'Something went wrong while saving.';
+}
+
+/* =========================================================
+   UTIL
+========================================================= */
+function money(n){ n = Number(n)||0; return 'UGX ' + n.toLocaleString('en-UG',{maximumFractionDigits:0}); }
+function balanceOf(a){ return Math.max(0, (Number(a.amount)||0) - (Number(a.amount_paid)||0)); }
+function paymentStatusOf(a){
+  const amt = Number(a.amount)||0, paid = Number(a.amount_paid)||0;
+  if(paid <= 0) return 'Unpaid';
+  if(paid >= amt) return 'Paid';
+  return 'Partially Paid';
+}
+function isOverdue(a){
+  if(!a.deadline) return false;
+  if(a.submission_status === 'Submitted') return false;
+  return new Date(a.deadline).getTime() < Date.now();
+}
+function submissionDisplay(a){
+  if(isOverdue(a) && a.submission_status !== 'Late Submission') return 'Overdue';
+  return a.submission_status;
+}
+function badgeForSubmission(status){
+  const map = {'Not Started':'b-grey','In Progress':'b-blue','Submitted':'b-green','Late Submission':'b-amber','Overdue':'b-red'};
+  return map[status] || 'b-grey';
+}
+function badgeForPayment(status){
+  const map = {'Unpaid':'b-red','Partially Paid':'b-amber','Paid':'b-green'};
+  return map[status] || 'b-grey';
+}
+function clientById(id){ return DB.clients.find(c=>c.id===id); }
+function activitiesOf(clientId){ return DB.activities.filter(a=>a.client_id===clientId); }
+function paymentsOf(activityId){ return DB.payments.filter(p=>p.activity_id===activityId); }
+function fmtTime12(t){
+  if(!t) return '';
+  const [h,m] = t.split(':').map(Number);
+  const ap = h>=12?'PM':'AM'; let hh = h%12; if(hh===0) hh=12;
+  return `${hh}:${String(m).padStart(2,'0')} ${ap}`;
+}
+function fmtDateHuman(dstr){
+  if(!dstr) return '';
+  const d = new Date(dstr+'T00:00:00');
+  const opts = {weekday:'short', day:'numeric', month:'short'};
+  const today = todayStr();
+  if(dstr === today) return 'Today';
+  if(dstr === addDays(today,1)) return 'Tomorrow';
+  if(dstr === addDays(today,-1)) return 'Yesterday';
+  return d.toLocaleDateString('en-GB', opts);
+}
+function initials(name){ return name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join(''); }
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+function escapeHtml(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* =========================================================
+   ICONS
+========================================================= */
+const ICONS = {
+  dashboard:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
+  clients:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6" stroke-linecap="round"/><circle cx="17" cy="8" r="2.6"/><path d="M16 14.2c2.6.4 4.5 2.6 4.5 5.8" stroke-linecap="round"/></svg>',
+  activities:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4" stroke-linecap="round"/><path d="M7 13h4M7 17h7" stroke-linecap="round"/></svg>',
+  calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4" stroke-linecap="round"/></svg>',
+  payments:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="19" height="13" rx="2"/><path d="M2.5 10h19" stroke-linecap="round"/><path d="M6 15h4" stroke-linecap="round"/></svg>',
+  reminders:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke-linecap="round"/></svg>',
+  reports:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M12 20V4M20 20v-7" stroke-linecap="round"/></svg>',
+  settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13a7.5 7.5 0 000-2l2-1.5-2-3.4-2.3.7a7.6 7.6 0 00-1.7-1L15 3h-4l-.4 2.8a7.6 7.6 0 00-1.7 1l-2.3-.7-2 3.4L6.6 11a7.5 7.5 0 000 2l-2 1.5 2 3.4 2.3-.7c.5.4 1.1.7 1.7 1L11 21h4l.4-2.8c.6-.3 1.2-.6 1.7-1l2.3.7 2-3.4-2-1.5z" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9" stroke-linecap="round"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18" stroke-linecap="round"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m2 0-1 15a1 1 0 01-1 1H7a1 1 0 01-1-1L5 6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  eye:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12l5 5L20 6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  cash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="19" height="13" rx="2"/><circle cx="12" cy="12.5" r="2.6"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>',
+  chevL:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  chevR:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  download:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v13m0 0l-4.5-4.5M12 16l4.5-4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 19h16" stroke-linecap="round"/></svg>',
+  bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke-linecap="round"/></svg>',
+};
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+const NAV = [
+  {id:'dashboard', label:'Dashboard', icon:'dashboard'},
+  {id:'clients', label:'Clients', icon:'clients'},
+  {id:'activities', label:'Activities', icon:'activities'},
+  {id:'calendar', label:'Calendar', icon:'calendar'},
+  {id:'payments', label:'Payments', icon:'payments'},
+  {id:'reminders', label:'Reminders', icon:'reminders'},
+  {id:'reports', label:'Reports', icon:'reports'},
+  {id:'settings', label:'Settings', icon:'settings'},
+];
+let currentView = 'dashboard';
+let currentClientProfile = null;
+
+function renderNav(){
+  const overdueCount = DB.activities.filter(a=>isOverdue(a)).length;
+  function itemHtml(n){
+    const badge = n.id==='reminders' && overdueCount>0 ? `<span class="nav-badge">${overdueCount}</span>` : '';
+    return `<button class="nav-item ${currentView===n.id?'active':''}" data-nav="${n.id}">${ICONS[n.icon]}<span>${n.label}</span>${badge}</button>`;
+  }
+  document.getElementById('navGroup').innerHTML = NAV.map(itemHtml).join('');
+  document.getElementById('navGroupMobile').innerHTML = NAV.map(itemHtml).join('');
+  const foot = document.getElementById('sidebarFoot');
+  if(foot) foot.textContent = appStarted ? "Saved to your server's database." : 'Connecting…';
+  document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click', ()=>{ goTo(b.dataset.nav); closeDrawer(); }));
+
+  // bottom nav: primary 5
+  const bnItems = ['dashboard','activities','calendar','reminders','reports'];
+  document.getElementById('bottomNav').innerHTML = bnItems.map(id=>{
+    const n = NAV.find(x=>x.id===id);
+    const badge = id==='reminders' && overdueCount>0 ? `<span class="dot-badge" style="position:absolute;top:2px;right:14px;">${overdueCount>9?'9+':overdueCount}</span>` : '';
+    return `<button class="${currentView===id?'active':''}" data-nav="${id}" style="position:relative;">${ICONS[n.icon]}<span>${n.label}</span>${badge}</button>`;
+  }).join('') + `<button data-nav="clients" class="${currentView==='clients'?'active':''}">${ICONS.clients}<span>Clients</span></button>`;
+  document.querySelectorAll('#bottomNav [data-nav]').forEach(b=>b.addEventListener('click', ()=>goTo(b.dataset.nav)));
+}
+
+function goTo(view){
+  currentView = view;
+  currentClientProfile = null;
+  document.getElementById('pageTitle').textContent = NAV.find(n=>n.id===view)?.label || 'Client Activity Manager';
+  document.getElementById('addActivityBtn').style.display = (view==='dashboard'||view==='activities'||view==='calendar') ? 'inline-flex' : 'none';
+  renderNav();
+  renderView();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function openDrawer(){ document.getElementById('drawer').classList.add('open'); document.getElementById('drawerOverlay').classList.add('active'); }
+function closeDrawer(){ document.getElementById('drawer').classList.remove('open'); document.getElementById('drawerOverlay').classList.remove('active'); }
+document.getElementById('hamburgerBtn').addEventListener('click', openDrawer);
+document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
+
+/* =========================================================
+   MODALS
+========================================================= */
+function openModal(id){ document.getElementById(id).classList.add('active'); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', ()=>closeModal(b.dataset.close)));
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click', (e)=>{ if(e.target===o) o.classList.remove('active'); }));
+
+/* =========================================================
+   RENDER: MAIN DISPATCH
+========================================================= */
+function renderView(){
+  const c = document.getElementById('content');
+  if(currentView==='dashboard') c.innerHTML = viewDashboard();
+  else if(currentView==='clients') c.innerHTML = currentClientProfile ? viewClientProfile(currentClientProfile) : viewClients();
+  else if(currentView==='activities') c.innerHTML = viewActivities();
+  else if(currentView==='calendar') c.innerHTML = viewCalendar();
+  else if(currentView==='payments') c.innerHTML = viewPayments();
+  else if(currentView==='reminders') c.innerHTML = viewReminders();
+  else if(currentView==='reports') c.innerHTML = viewReports();
+  else if(currentView==='settings') c.innerHTML = viewSettings();
+  bindViewEvents();
+  updateNotifBadge();
+}
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+function computeStats(){
+  const acts = DB.activities;
+  const today = todayStr();
+  const totalClients = DB.clients.length;
+  const totalActivities = acts.length;
+  const activitiesToday = acts.filter(a=>a.activity_date===today).length;
+  const pendingSubmissions = acts.filter(a=>['Not Started','In Progress'].includes(a.submission_status) && !isOverdue(a)).length;
+  const overdue = acts.filter(a=>isOverdue(a)).length;
+  const paid = acts.filter(a=>paymentStatusOf(a)==='Paid').length;
+  const unpaid = acts.filter(a=>paymentStatusOf(a)==='Unpaid').length;
+  const totalPaid = acts.reduce((s,a)=>s+(Number(a.amount_paid)||0),0);
+  const totalOutstanding = acts.reduce((s,a)=>s+balanceOf(a),0);
+  return {totalClients,totalActivities,activitiesToday,pendingSubmissions,overdue,paid,unpaid,totalPaid,totalOutstanding};
+}
+
+function statCard(label, value, iconKey, tint, sub){
+  return `<div class="stat-card">
+    <div class="stat-top"><span class="stat-label">${label}</span><div class="stat-icon" style="background:${tint.bg};color:${tint.fg};">${ICONS[iconKey]}</div></div>
+    <div class="stat-value">${value}</div>
+    ${sub?`<div class="stat-sub">${sub}</div>`:''}
+  </div>`;
+}
+
+function viewDashboard(){
+  const s = computeStats();
+  const today = todayStr();
+  const todays = DB.activities.filter(a=>a.activity_date===today).sort((a,b)=>a.start_time.localeCompare(b.start_time));
+  return `
+    <div class="grid-stats">
+      ${statCard('Total Clients', s.totalClients, 'clients', {bg:'var(--blue-tint-2)',fg:'var(--blue-dark)'})}
+      ${statCard('Total Activities', s.totalActivities, 'activities', {bg:'var(--blue-tint-2)',fg:'var(--blue-dark)'})}
+      ${statCard("Activities Today", s.activitiesToday, 'calendar', {bg:'var(--blue-tint-2)',fg:'var(--blue-dark)'})}
+      ${statCard('Pending Submissions', s.pendingSubmissions, 'activities', {bg:'var(--amber-tint)',fg:'var(--amber)'})}
+      ${statCard('Overdue Activities', s.overdue, 'reminders', {bg:'var(--red-tint)',fg:'var(--red)'})}
+      ${statCard('Paid Activities', s.paid, 'check', {bg:'var(--green-tint)',fg:'var(--green)'})}
+      ${statCard('Unpaid Activities', s.unpaid, 'cash', {bg:'var(--red-tint)',fg:'var(--red)'})}
+      ${statCard('Total Amount Paid', money(s.totalPaid), 'cash', {bg:'var(--green-tint)',fg:'var(--green)'})}
+      ${statCard('Total Outstanding', money(s.totalOutstanding), 'cash', {bg:'var(--red-tint)',fg:'var(--red)'})}
+    </div>
+
+    <div class="section-head">
+      <div><h2>Today's activities</h2><div class="section-sub">${fmtDateHuman(today)} · ${todays.length} scheduled</div></div>
+    </div>
+    <div class="panel">
+      ${todays.length? todays.map(a=>activityRowHtml(a)).join('') : emptyState('No activities today', 'Add one to see it appear here instantly.')}
+    </div>
+  `;
+}
+
+function emptyState(title, sub){
+  return `<div class="empty">${ICONS.calendar}<div class="t">${title}</div><div>${sub}</div></div>`;
+}
+
+function activityRowHtml(a){
+  const client = clientById(a.client_id);
+  const sub = submissionDisplay(a);
+  const pay = paymentStatusOf(a);
+  const bal = balanceOf(a);
+  return `<div class="arow" data-activity="${a.id}">
+    <div class="arow-time"><div class="t1">${fmtTime12(a.start_time)}</div><div class="t2">to ${fmtTime12(a.end_time)}</div></div>
+    <div class="arow-main">
+      <div class="client">${escapeHtml(client?.name||'Unknown client')}</div>
+      <div class="activity">${escapeHtml(a.activity_name)}</div>
+      <div class="arow-badges">
+        <span class="badge dot ${badgeForSubmission(sub)}">${sub}</span>
+        <span class="badge dot ${badgeForPayment(pay)}">${pay}</span>
+      </div>
+    </div>
+    <div class="arow-amt">
+      <div class="amt">${money(a.amount)}</div>
+      <div class="bal ${bal===0?'ok':''}">${bal===0?'Settled':'Owes '+money(bal)}</div>
+    </div>
+    <div class="arow-actions">
+      <button class="mini-btn" data-view-activity="${a.id}" title="View">${ICONS.eye}</button>
+      <button class="mini-btn" data-edit-activity="${a.id}" title="Edit">${ICONS.edit}</button>
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   CLIENTS
+========================================================= */
+let clientSearchTerm = '';
+function viewClients(){
+  const term = clientSearchTerm.trim().toLowerCase();
+  let list = DB.clients.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  if(term) list = list.filter(c=>c.name.toLowerCase().includes(term) || (c.institution||'').toLowerCase().includes(term));
+  return `
+    <div class="filters">
+      <div class="search-box">${ICONS.search}<input id="clientSearchInput" placeholder="Search clients..." value="${escapeHtml(clientSearchTerm)}"></div>
+      <button class="btn btn-primary" id="openAddClientBtn">${ICONS.plus} New client</button>
+    </div>
+    ${list.length ? `<div class="client-grid">${list.map(c=>clientCardHtml(c)).join('')}</div>` : emptyState('No clients found', 'Try a different search, or add a new client.')}
+  `;
+}
+function clientCardHtml(c){
+  const acts = activitiesOf(c.id);
+  const outstanding = acts.reduce((s,a)=>s+balanceOf(a),0);
+  return `<div class="client-card" data-client="${c.id}">
+    <div class="client-avatar">${initials(c.name)}</div>
+    <div class="name">${escapeHtml(c.name)}</div>
+    <div class="meta">${escapeHtml(c.phone||'')}${c.institution?' · '+escapeHtml(c.institution):''}</div>
+    <div class="stats">
+      <div><b>${acts.length}</b>activities</div>
+      <div><b style="color:${outstanding>0?'var(--red)':'var(--green)'}">${money(outstanding)}</b>owes</div>
+    </div>
+  </div>`;
+}
+
+function viewClientProfile(clientId){
+  const c = clientById(clientId);
+  if(!c) { currentClientProfile = null; return viewClients(); }
+  const acts = activitiesOf(clientId).sort((a,b)=> (a.activity_date+a.start_time) < (b.activity_date+b.start_time) ? 1 : -1);
+  const totalCharged = acts.reduce((s,a)=>s+(Number(a.amount)||0),0);
+  const totalPaidC = acts.reduce((s,a)=>s+(Number(a.amount_paid)||0),0);
+  const outstanding = acts.reduce((s,a)=>s+balanceOf(a),0);
+  const pays = acts.flatMap(a=>paymentsOf(a.id).map(p=>({...p, activity_name:a.activity_name}))).sort((a,b)=>b.payment_date.localeCompare(a.payment_date));
+  return `
+    <button class="btn btn-outline" id="backToClientsBtn" style="margin-bottom:16px;">${ICONS.chevL} All clients</button>
+    <div class="profile-head">
+      <div class="profile-id">
+        <div class="profile-avatar">${initials(c.name)}</div>
+        <div>
+          <div class="profile-name">${escapeHtml(c.name)}</div>
+          <div class="profile-meta">${escapeHtml(c.phone||'')}${c.email?' · '+escapeHtml(c.email):''}${c.institution?' · '+escapeHtml(c.institution):''}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" data-edit-client="${c.id}">${ICONS.edit} Edit</button>
+        <button class="btn btn-danger" data-delete-client="${c.id}">${ICONS.trash} Delete</button>
+      </div>
+    </div>
+    ${c.notes?`<div class="hint" style="margin-bottom:16px;background:var(--floor);padding:10px 14px;border-radius:10px;">${escapeHtml(c.notes)}</div>`:''}
+    <div class="profile-stats">
+      <div class="pstat"><div class="l">Activities</div><div class="v">${acts.length}</div></div>
+      <div class="pstat"><div class="l">Total charged</div><div class="v">${money(totalCharged)}</div></div>
+      <div class="pstat"><div class="l">Total paid</div><div class="v">${money(totalPaidC)}</div></div>
+      <div class="pstat"><div class="l">Outstanding</div><div class="v" style="color:${outstanding>0?'var(--red)':'var(--green)'}">${money(outstanding)}</div></div>
+    </div>
+
+    <div class="section-head"><h2>Activity history</h2></div>
+    <div class="panel">
+      ${acts.length? acts.map(a=>activityRowHtml(a)).join('') : emptyState('No activities yet', "Add this client's first activity.")}
+    </div>
+
+    <div class="section-head"><h2>Payment history</h2></div>
+    <div class="panel">
+      ${pays.length ? `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Activity</th><th>Amount</th><th>Method</th><th>Notes</th></tr></thead><tbody>
+        ${pays.map(p=>`<tr><td>${fmtDateHuman(p.payment_date)}</td><td>${escapeHtml(p.activity_name)}</td><td>${money(p.amount)}</td><td>${escapeHtml(p.payment_method||'')}</td><td class="cell-sub">${escapeHtml(p.notes||'—')}</td></tr>`).join('')}
+      </tbody></table></div>` : emptyState('No payments recorded', 'Payments will appear here once recorded.')}
+    </div>
+  `;
+}
+
+/* =========================================================
+   ACTIVITIES
+========================================================= */
+let actFilters = {search:'', client:'', submission:'', payment:''};
+function viewActivities(){
+  let list = filteredActivities();
+  return `
+    <div class="filters">
+      <div class="search-box">${ICONS.search}<input id="actSearchInput" placeholder="Search client or activity..." value="${escapeHtml(actFilters.search)}"></div>
+      <select id="actClientFilter"><option value="">All clients</option>${DB.clients.map(c=>`<option value="${c.id}" ${actFilters.client===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}</select>
+      <select id="actSubFilter">
+        <option value="">All submission statuses</option>
+        ${['Not Started','In Progress','Submitted','Late Submission','Overdue'].map(s=>`<option value="${s}" ${actFilters.submission===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+      <select id="actPayFilter">
+        <option value="">All payment statuses</option>
+        ${['Unpaid','Partially Paid','Paid'].map(s=>`<option value="${s}" ${actFilters.payment===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Client</th><th>Activity</th><th>Date</th><th>Time</th><th>Submission</th><th>Payment</th><th>Amount</th><th>Balance</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${list.length ? list.map(a=>activityTableRow(a)).join('') : `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-faint);">No activities match your filters.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function filteredActivities(){
+  let list = DB.activities.slice().sort((a,b)=> (b.activity_date+b.start_time).localeCompare(a.activity_date+a.start_time));
+  const term = actFilters.search.trim().toLowerCase();
+  if(term) list = list.filter(a=>{
+    const c = clientById(a.client_id);
+    return a.activity_name.toLowerCase().includes(term) || (c && c.name.toLowerCase().includes(term));
+  });
+  if(actFilters.client) list = list.filter(a=>a.client_id===actFilters.client);
+  if(actFilters.submission) list = list.filter(a=>submissionDisplay(a)===actFilters.submission);
+  if(actFilters.payment) list = list.filter(a=>paymentStatusOf(a)===actFilters.payment);
+  return list;
+}
+function activityTableRow(a){
+  const c = clientById(a.client_id);
+  const sub = submissionDisplay(a);
+  const pay = paymentStatusOf(a);
+  const bal = balanceOf(a);
+  return `<tr>
+    <td class="cell-name">${escapeHtml(c?.name||'—')}</td>
+    <td>${escapeHtml(a.activity_name)}</td>
+    <td>${fmtDateHuman(a.activity_date)}</td>
+    <td class="cell-sub">${fmtTime12(a.start_time)}–${fmtTime12(a.end_time)}</td>
+    <td><span class="badge dot ${badgeForSubmission(sub)}">${sub}</span></td>
+    <td><span class="badge dot ${badgeForPayment(pay)}">${pay}</span></td>
+    <td>${money(a.amount)}</td>
+    <td style="color:${bal>0?'var(--red)':'var(--green)'}">${money(bal)}</td>
+    <td><div class="row-actions">
+      <button class="mini-btn" data-view-activity="${a.id}" title="View">${ICONS.eye}</button>
+      <button class="mini-btn" data-edit-activity="${a.id}" title="Edit">${ICONS.edit}</button>
+      <button class="mini-btn" data-mark-submitted="${a.id}" title="Mark submitted">${ICONS.check}</button>
+      <button class="mini-btn" data-record-payment="${a.id}" title="Record payment">${ICONS.cash}</button>
+      <button class="mini-btn" data-delete-activity="${a.id}" title="Delete">${ICONS.trash}</button>
+    </div></td>
+  </tr>`;
+}
+
+/* =========================================================
+   CALENDAR
+========================================================= */
+let calView = 'month';
+let calAnchor = new Date();
+function viewCalendar(){
+  const head = `
+    <div class="cal-head">
+      <div class="cal-nav">
+        <button class="icon-btn" id="calPrev">${ICONS.chevL}</button>
+        <div class="cal-title" id="calTitle"></div>
+        <button class="icon-btn" id="calNext">${ICONS.chevR}</button>
+        <button class="btn btn-outline" id="calToday">Today</button>
+      </div>
+      <div class="cal-viewtabs">
+        <button data-calview="month" class="${calView==='month'?'active':''}">Month</button>
+        <button data-calview="week" class="${calView==='week'?'active':''}">Week</button>
+        <button data-calview="day" class="${calView==='day'?'active':''}">Day</button>
+      </div>
+    </div>`;
+  let body = '';
+  if(calView==='month') body = renderCalMonth();
+  else if(calView==='week') body = renderCalWeek();
+  else body = renderCalDay();
+  return head + body;
+}
+function calDotClass(a){
+  const sub = submissionDisplay(a);
+  if(sub==='Overdue') return 'b-red';
+  if(sub==='Submitted') return 'b-green';
+  const pay = paymentStatusOf(a);
+  if(pay==='Unpaid') return 'b-red';
+  if(pay==='Partially Paid') return 'b-amber';
+  return 'b-blue';
+}
+function renderCalMonth(){
+  const anchor = calAnchor;
+  const year = anchor.getFullYear(), month = anchor.getMonth();
+  document.title = document.title; // noop
+  const monthName = anchor.toLocaleDateString('en-GB',{month:'long', year:'numeric'});
+  const first = new Date(year, month, 1);
+  const startOffset = first.getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const cells = [];
+  for(let i=0;i<startOffset;i++){ const d = new Date(year, month, 1-(startOffset-i)); cells.push({date:d, other:true}); }
+  for(let d=1; d<=daysInMonth; d++){ cells.push({date:new Date(year,month,d), other:false}); }
+  while(cells.length % 7 !== 0 || cells.length < 35){ const last = cells[cells.length-1].date; const nd = new Date(last); nd.setDate(nd.getDate()+1); cells.push({date:nd, other:true}); }
+  setTimeout(()=>{ const el = document.getElementById('calTitle'); if(el) el.textContent = monthName; },0);
+  const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const today = todayStr();
+  let html = `<div class="cal-grid">` + dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  cells.forEach(cell=>{
+    const dstr = fmtDate(cell.date);
+    const dayActs = DB.activities.filter(a=>a.activity_date===dstr).sort((a,b)=>a.start_time.localeCompare(b.start_time));
+    const isToday = dstr===today;
+    html += `<div class="cal-cell ${cell.other?'other':''} ${isToday?'today':''}" data-cal-day="${dstr}">
+      <div class="cal-daynum">${cell.date.getDate()}</div>
+      <div class="cal-dots">
+        ${dayActs.slice(0,3).map(a=>`<div class="cal-dotitem ${calDotClass(a)}" style="background:var(--floor);">${escapeHtml(clientById(a.client_id)?.name.split(' ')[0]||'')} · ${escapeHtml(a.activity_name)}</div>`).join('')}
+        ${dayActs.length>3?`<div class="cal-dotitem" style="color:var(--text-faint);">+${dayActs.length-3} more</div>`:''}
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+function renderCalWeek(){
+  const anchor = calAnchor;
+  const start = new Date(anchor); start.setDate(start.getDate() - start.getDay());
+  const days = Array.from({length:7}, (_,i)=>{ const d = new Date(start); d.setDate(d.getDate()+i); return d; });
+  setTimeout(()=>{ const el = document.getElementById('calTitle'); if(el) el.textContent = `${days[0].toLocaleDateString('en-GB',{day:'numeric',month:'short'})} – ${days[6].toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`; },0);
+  const today = todayStr();
+  return `<div class="cal-week-row">` + days.map(d=>{
+    const dstr = fmtDate(d);
+    const acts = DB.activities.filter(a=>a.activity_date===dstr).sort((a,b)=>a.start_time.localeCompare(b.start_time));
+    return `<div class="cal-week-day ${dstr===today?'today':''}" data-cal-day="${dstr}">
+      <div class="wd-head"><span>${d.toLocaleDateString('en-GB',{weekday:'long', day:'numeric', month:'short'})}</span><span>${acts.length} activity${acts.length!==1?'ies':''}</span></div>
+      ${acts.length? acts.map(a=>activityRowHtml(a)).join('') : `<div style="font-size:12.5px;color:var(--text-faint);">No activities</div>`}
+    </div>`;
+  }).join('') + `</div>`;
+}
+function renderCalDay(){
+  const dstr = fmtDate(calAnchor);
+  setTimeout(()=>{ const el = document.getElementById('calTitle'); if(el) el.textContent = calAnchor.toLocaleDateString('en-GB',{weekday:'long', day:'numeric', month:'long', year:'numeric'}); },0);
+  const acts = DB.activities.filter(a=>a.activity_date===dstr).sort((a,b)=>a.start_time.localeCompare(b.start_time));
+  return `<div class="panel">${acts.length? acts.map(a=>activityRowHtml(a)).join('') : emptyState('No activities this day', 'Add one and it will show up here.')}</div>`;
+}
+
+/* =========================================================
+   PAYMENTS
+========================================================= */
+function viewPayments(){
+  const rows = DB.payments.slice().sort((a,b)=>b.payment_date.localeCompare(a.payment_date)).map(p=>{
+    const a = DB.activities.find(x=>x.id===p.activity_id);
+    const c = a ? clientById(a.client_id) : null;
+    return {...p, activity:a, client:c};
+  });
+  const unpaidActs = DB.activities.filter(a=>paymentStatusOf(a)!=='Paid').sort((a,b)=>balanceOf(b)-balanceOf(a));
+  return `
+    <div class="section-head"><div><h2>Outstanding balances</h2><div class="section-sub">Activities with money still owed</div></div></div>
+    <div class="panel">
+      ${unpaidActs.length? `<div class="table-wrap"><table><thead><tr><th>Client</th><th>Activity</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Actions</th></tr></thead><tbody>
+      ${unpaidActs.map(a=>{
+        const c = clientById(a.client_id);
+        return `<tr><td class="cell-name">${escapeHtml(c?.name||'—')}</td><td>${escapeHtml(a.activity_name)}</td><td>${money(a.amount)}</td><td>${money(a.amount_paid)}</td><td style="color:var(--red);font-weight:600;">${money(balanceOf(a))}</td>
+        <td><button class="btn btn-ghost" data-record-payment="${a.id}">${ICONS.cash} Record payment</button></td></tr>`;
+      }).join('')}
+      </tbody></table></div>` : emptyState('All settled', 'No outstanding balances right now.')}
+    </div>
+
+    <div class="section-head"><div><h2>Payment history</h2></div></div>
+    <div class="panel">
+      ${rows.length ? `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Client</th><th>Activity</th><th>Amount</th><th>Method</th><th>Notes</th></tr></thead><tbody>
+      ${rows.map(p=>`<tr><td>${fmtDateHuman(p.payment_date)}</td><td class="cell-name">${escapeHtml(p.client?.name||'—')}</td><td>${escapeHtml(p.activity?.activity_name||'—')}</td><td>${money(p.amount)}</td><td>${escapeHtml(p.payment_method||'')}</td><td class="cell-sub">${escapeHtml(p.notes||'—')}</td></tr>`).join('')}
+      </tbody></table></div>` : emptyState('No payments yet', 'Recorded payments will appear here.')}
+    </div>
+  `;
+}
+
+/* =========================================================
+   REMINDERS
+========================================================= */
+function reminderList(){
+  const now = Date.now();
+  const items = [];
+  DB.activities.forEach(a=>{
+    const c = clientById(a.client_id);
+    if(!c) return;
+    const overdue = isOverdue(a);
+    const startDT = new Date(a.activity_date+'T'+(a.start_time||'00:00'));
+    const deadlineDT = a.deadline ? new Date(a.deadline) : null;
+    const hoursToStart = (startDT - now)/3600000;
+    const settings = a.reminder_settings || [];
+    if(overdue){
+      items.push({a,c, kind:'urgent', title:'OVERDUE — NOT SUBMITTED', order:0});
+    } else if(settings.includes('after_deadline') && deadlineDT && deadlineDT.getTime() < now && a.submission_status !== 'Submitted'){
+      items.push({a,c, kind:'urgent', title:'PAST DEADLINE', order:0});
+    } else if(settings.includes('1_day_before') && hoursToStart>0 && hoursToStart<=24){
+      items.push({a,c, kind:'upcoming', title:'STARTS WITHIN 1 DAY', order:1});
+    } else if(settings.includes('3_hours_before') && hoursToStart>0 && hoursToStart<=3){
+      items.push({a,c, kind:'upcoming', title:'STARTS WITHIN 3 HOURS', order:1});
+    } else if(settings.includes('1_hour_before_deadline') && deadlineDT && (deadlineDT-now)/3600000<=1 && (deadlineDT-now)>0){
+      items.push({a,c, kind:'upcoming', title:'DEADLINE WITHIN 1 HOUR', order:1});
+    } else if(settings.includes('at_deadline') && deadlineDT && Math.abs(deadlineDT-now)/3600000<=1){
+      items.push({a,c, kind:'upcoming', title:'DEADLINE TODAY', order:1});
+    }
+    if(paymentStatusOf(a)==='Unpaid' || paymentStatusOf(a)==='Partially Paid'){
+      items.push({a,c, kind:'upcoming', title: paymentStatusOf(a)==='Unpaid' ? 'PAYMENT OUTSTANDING' : 'PARTIAL PAYMENT OUTSTANDING', order:2, isPayment:true});
+    }
+  });
+  // de-dup by activity+title
+  const seen = new Set(); const out = [];
+  items.sort((x,y)=>x.order-y.order).forEach(it=>{ const k=it.a.id+it.title; if(!seen.has(k)){seen.add(k); out.push(it);} });
+  return out;
+}
+function viewReminders(){
+  const items = reminderList();
+  const urgent = items.filter(i=>i.kind==='urgent');
+  const upcoming = items.filter(i=>i.kind==='upcoming');
+  function card(it){
+    const a = it.a, c = it.c;
+    return `<div class="reminder-card ${it.kind==='upcoming'?'upcoming':''}" data-activity="${a.id}">
+      <div class="rtitle">${it.title}</div>
+      <div class="rclient">${escapeHtml(c.name)}</div>
+      <div class="ractivity">${escapeHtml(a.activity_name)}</div>
+      <div class="rmeta">${fmtDateHuman(a.activity_date)}, ${fmtTime12(a.start_time)} – ${fmtTime12(a.end_time)}</div>
+      <div class="rbadges">
+        <span class="badge dot ${badgeForSubmission(submissionDisplay(a))}">${submissionDisplay(a)}</span>
+        <span class="badge dot ${badgeForPayment(paymentStatusOf(a))}">${paymentStatusOf(a)}</span>
+      </div>
+    </div>`;
+  }
+  return `
+    <div class="section-head"><div><h2>Needs attention now</h2><div class="section-sub">${urgent.length} item${urgent.length!==1?'s':''}</div></div></div>
+    ${urgent.length ? urgent.map(card).join('') : `<div class="panel">${emptyState('Nothing overdue', 'Great — everything is on track.')}</div>`}
+
+    <div class="section-head"><div><h2>Upcoming reminders</h2><div class="section-sub">${upcoming.length} item${upcoming.length!==1?'s':''}</div></div></div>
+    ${upcoming.length ? upcoming.map(card).join('') : `<div class="panel">${emptyState('No upcoming reminders', 'Reminders you configure on activities will show up here.')}</div>`}
+  `;
+}
+
+/* =========================================================
+   REPORTS
+========================================================= */
+let reportRange = 'month';
+let reportCustomStart = todayStr(), reportCustomEnd = todayStr();
+function activitiesInRange(){
+  const today = todayStr();
+  let start, end;
+  if(reportRange==='today'){ start = today; end = today; }
+  else if(reportRange==='week'){ const d = new Date(); const day = d.getDay(); start = addDays(today, -day); end = addDays(start,6); }
+  else if(reportRange==='month'){ const d = new Date(); start = fmtDate(new Date(d.getFullYear(), d.getMonth(),1)); end = fmtDate(new Date(d.getFullYear(), d.getMonth()+1,0)); }
+  else { start = reportCustomStart; end = reportCustomEnd; }
+  return DB.activities.filter(a=>a.activity_date>=start && a.activity_date<=end);
+}
+function viewReports(){
+  const list = activitiesInRange();
+  const total = list.length;
+  const completed = list.filter(a=>a.submission_status==='Submitted').length;
+  const pending = list.filter(a=>['Not Started','In Progress'].includes(a.submission_status) && !isOverdue(a)).length;
+  const overdue = list.filter(a=>isOverdue(a)).length;
+  const charged = list.reduce((s,a)=>s+(Number(a.amount)||0),0);
+  const received = list.reduce((s,a)=>s+(Number(a.amount_paid)||0),0);
+  const unpaidBal = list.reduce((s,a)=>s+balanceOf(a),0);
+  return `
+    <div class="filters">
+      <select id="reportRangeSel">
+        <option value="today" ${reportRange==='today'?'selected':''}>Today</option>
+        <option value="week" ${reportRange==='week'?'selected':''}>This week</option>
+        <option value="month" ${reportRange==='month'?'selected':''}>This month</option>
+        <option value="custom" ${reportRange==='custom'?'selected':''}>Custom range</option>
+      </select>
+      ${reportRange==='custom' ? `<input type="date" id="reportStart" value="${reportCustomStart}"> <input type="date" id="reportEnd" value="${reportCustomEnd}">` : ''}
+      <button class="btn btn-ghost" id="exportCsvBtn">${ICONS.download} Export CSV</button>
+    </div>
+    <div class="report-grid">
+      ${statCard('Total activities', total, 'activities', {bg:'var(--blue-tint-2)',fg:'var(--blue-dark)'})}
+      ${statCard('Completed', completed, 'check', {bg:'var(--green-tint)',fg:'var(--green)'})}
+      ${statCard('Pending', pending, 'reminders', {bg:'var(--amber-tint)',fg:'var(--amber)'})}
+      ${statCard('Overdue', overdue, 'reminders', {bg:'var(--red-tint)',fg:'var(--red)'})}
+      ${statCard('Amount charged', money(charged), 'cash', {bg:'var(--blue-tint-2)',fg:'var(--blue-dark)'})}
+      ${statCard('Amount received', money(received), 'cash', {bg:'var(--green-tint)',fg:'var(--green)'})}
+      ${statCard('Unpaid balance', money(unpaidBal), 'cash', {bg:'var(--red-tint)',fg:'var(--red)'})}
+    </div>
+    <div class="section-head"><h2>Activities in range</h2></div>
+    <div class="panel"><div class="table-wrap"><table>
+      <thead><tr><th>Client</th><th>Activity</th><th>Date</th><th>Submission</th><th>Payment</th><th>Amount</th><th>Balance</th></tr></thead>
+      <tbody>${list.length ? list.map(a=>{const c=clientById(a.client_id); return `<tr><td class="cell-name">${escapeHtml(c?.name||'—')}</td><td>${escapeHtml(a.activity_name)}</td><td>${fmtDateHuman(a.activity_date)}</td><td><span class="badge dot ${badgeForSubmission(submissionDisplay(a))}">${submissionDisplay(a)}</span></td><td><span class="badge dot ${badgeForPayment(paymentStatusOf(a))}">${paymentStatusOf(a)}</span></td><td>${money(a.amount)}</td><td>${money(balanceOf(a))}</td></tr>`;}).join('') : `<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-faint);">No activities in this range.</td></tr>`}</tbody>
+    </table></div></div>
+  `;
+}
+function exportCsv(){
+  const list = activitiesInRange();
+  const header = ['Client','Activity','Date','Start','End','Submission Status','Payment Status','Amount Charged','Amount Paid','Balance'];
+  const lines = [header.join(',')];
+  list.forEach(a=>{
+    const c = clientById(a.client_id);
+    const row = [c?.name||'', a.activity_name, a.activity_date, a.start_time, a.end_time, submissionDisplay(a), paymentStatusOf(a), a.amount, a.amount_paid, balanceOf(a)]
+      .map(v=>`"${String(v).replace(/"/g,'""')}"`);
+    lines.push(row.join(','));
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = `activity_report_${todayStr()}.csv`;
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  toast('CSV exported');
+}
+
+/* =========================================================
+   SETTINGS
+========================================================= */
+function viewSettings(){
+  return `
+    <div class="panel" style="padding:22px;max-width:520px;">
+      <h2 style="margin-top:0;font-size:15px;color:var(--ink);">About this app</h2>
+      <p style="color:var(--text-soft);font-size:13.5px;line-height:1.6;">
+        Client Activity Manager keeps track of every client, activity, submission and payment in one place.
+        All amounts are shown in UGX. Your data lives in a real SQLite database file on this server
+        (<code>data/app.db</code>) — open this same address from any device on your network and you'll see the
+        same clients and activities, kept in sync every few seconds.
+      </p>
+      <div style="height:1px;background:var(--line);margin:18px 0;"></div>
+      <h2 style="font-size:15px;color:var(--ink);">Backups</h2>
+      <p style="color:var(--text-soft);font-size:13.5px;">
+        Everything is stored in one file: <code>data/app.db</code>, next to this server's <code>server.js</code>.
+        Copy that file anywhere to back it up, or open it with any SQLite browser to run your own reports.
+      </p>
+      <div style="height:1px;background:var(--line);margin:18px 0;"></div>
+      <h2 style="font-size:15px;color:var(--ink);">Data</h2>
+      <p style="color:var(--text-soft);font-size:13.5px;">Reset to the original sample data, or clear everything and start fresh.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+        <button class="btn btn-outline" id="resetSampleBtn">Reset to sample data</button>
+        <button class="btn btn-danger" id="clearAllBtn">Clear all data</button>
+      </div>
+    </div>
+  `;
+}
+
+/* =========================================================
+   NOTIFICATIONS PANEL
+========================================================= */
+function updateNotifBadge(){
+  const items = reminderList();
+  const count = items.length;
+  const dot = document.getElementById('notifDot');
+  if(count>0){ dot.style.display='flex'; dot.textContent = count>9?'9+':count; }
+  else dot.style.display='none';
+}
+document.getElementById('notifBtn').addEventListener('click', ()=>{
+  const items = reminderList();
+  const list = document.getElementById('notifList');
+  if(!items.length){ list.innerHTML = emptyState('All caught up', 'No notifications right now.'); }
+  else {
+    list.innerHTML = items.map(it=>{
+      const a = it.a, c = it.c;
+      return `<div class="reminder-card ${it.kind==='upcoming'?'upcoming':''}" data-activity="${a.id}" style="cursor:pointer;">
+        <div class="rtitle">${it.title}</div>
+        <div class="rclient">${escapeHtml(c.name)}</div>
+        <div class="ractivity">${escapeHtml(a.activity_name)} · ${fmtDateHuman(a.activity_date)}</div>
+      </div>`;
+    }).join('');
+  }
+  openModal('notifOverlay');
+  list.querySelectorAll('[data-activity]').forEach(el=>el.addEventListener('click', ()=>{ closeModal('notifOverlay'); openDetail(el.dataset.activity); }));
+});
+
+/* =========================================================
+   CRUD: CLIENTS
+========================================================= */
+function openAddClient(){
+  document.getElementById('clientModalTitle').textContent = 'Add client';
+  document.getElementById('clientId').value = '';
+  ['c_name','c_phone','c_email','c_institution','c_notes'].forEach(id=>document.getElementById(id).value='');
+  openModal('clientOverlay');
+}
+function openEditClient(id){
+  const c = clientById(id); if(!c) return;
+  document.getElementById('clientModalTitle').textContent = 'Edit client';
+  document.getElementById('clientId').value = c.id;
+  document.getElementById('c_name').value = c.name;
+  document.getElementById('c_phone').value = c.phone||'';
+  document.getElementById('c_email').value = c.email||'';
+  document.getElementById('c_institution').value = c.institution||'';
+  document.getElementById('c_notes').value = c.notes||'';
+  openModal('clientOverlay');
+}
+document.getElementById('saveClientBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('c_name').value.trim();
+  const phone = document.getElementById('c_phone').value.trim();
+  if(!name || !phone){ toast('Name and phone are required'); return; }
+  const id = document.getElementById('clientId').value;
+  const btn = document.getElementById('saveClientBtn'); btn.disabled = true;
+  try{
+    if(id){
+      const existing = clientById(id) || {};
+      const payload = {name, phone, email:document.getElementById('c_email').value.trim(), institution:document.getElementById('c_institution').value.trim(), notes:document.getElementById('c_notes').value.trim(), created_at:existing.created_at||todayStr()};
+      await dbSet('clients', id, payload);
+      toast('Client updated');
+    } else {
+      await dbAdd('clients', {name, phone, email:document.getElementById('c_email').value.trim(), institution:document.getElementById('c_institution').value.trim(), notes:document.getElementById('c_notes').value.trim(), created_at:todayStr()});
+      toast('Client added');
+    }
+    closeModal('clientOverlay'); renderView();
+  }catch(e){ toast(dbErrorMessage(e)); }
+  btn.disabled = false;
+});
+async function deleteClient(id){
+  if(!confirm('Delete this client and all their activities? This cannot be undone.')) return;
+  try{
+    for(const a of activitiesOf(id)){
+      for(const p of paymentsOf(a.id)){ await dbDelete('payments', p.id); }
+      await dbDelete('activities', a.id);
+    }
+    await dbDelete('clients', id);
+    currentClientProfile = null;
+    toast('Client deleted');
+    renderView();
+  }catch(e){ toast(dbErrorMessage(e)); }
+}
+
+/* =========================================================
+   CRUD: ACTIVITIES
+========================================================= */
+function populateClientSelect(selectedId){
+  const sel = document.getElementById('a_client');
+  sel.innerHTML = DB.clients.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${c.id}" ${c.id===selectedId?'selected':''}>${escapeHtml(c.name)}</option>`).join('');
+  if(!DB.clients.length) sel.innerHTML = `<option value="">Add a client first</option>`;
+}
+function openAddActivity(){
+  document.getElementById('activityModalTitle').textContent = 'Add activity';
+  document.getElementById('activityId').value = '';
+  populateClientSelect(currentClientProfile);
+  document.getElementById('a_name').value='';
+  document.getElementById('a_desc').value='';
+  document.getElementById('a_date').value = todayStr();
+  document.getElementById('a_deadline').value='';
+  document.getElementById('a_start').value='09:00';
+  document.getElementById('a_end').value='12:00';
+  document.getElementById('a_amount').value='';
+  document.getElementById('a_paid').value='0';
+  document.getElementById('a_substatus').value='Not Started';
+  document.getElementById('a_notes').value='';
+  document.querySelectorAll('#activityOverlay .reminder-opts input').forEach(cb=>cb.checked=false);
+  openModal('activityOverlay');
+}
+function openEditActivity(id){
+  const a = DB.activities.find(x=>x.id===id); if(!a) return;
+  document.getElementById('activityModalTitle').textContent = 'Edit activity';
+  document.getElementById('activityId').value = a.id;
+  populateClientSelect(a.client_id);
+  document.getElementById('a_name').value = a.activity_name;
+  document.getElementById('a_desc').value = a.description||'';
+  document.getElementById('a_date').value = a.activity_date;
+  document.getElementById('a_deadline').value = a.deadline||'';
+  document.getElementById('a_start').value = a.start_time;
+  document.getElementById('a_end').value = a.end_time;
+  document.getElementById('a_amount').value = a.amount;
+  document.getElementById('a_paid').value = a.amount_paid;
+  document.getElementById('a_substatus').value = a.submission_status;
+  document.getElementById('a_notes').value = a.notes||'';
+  const settings = a.reminder_settings||[];
+  document.querySelectorAll('#activityOverlay .reminder-opts input').forEach(cb=>cb.checked = settings.includes(cb.value));
+  openModal('activityOverlay');
+}
+document.getElementById('saveActivityBtn').addEventListener('click', async ()=>{
+  const client_id = document.getElementById('a_client').value;
+  const activity_name = document.getElementById('a_name').value.trim();
+  const activity_date = document.getElementById('a_date').value;
+  const start_time = document.getElementById('a_start').value;
+  const end_time = document.getElementById('a_end').value;
+  const amount = Number(document.getElementById('a_amount').value)||0;
+  if(!client_id || !activity_name || !activity_date || !start_time || !end_time){ toast('Please fill in all required fields'); return; }
+  const id = document.getElementById('activityId').value;
+  const existing = id ? DB.activities.find(x=>x.id===id) : null;
+  const payload = {
+    client_id, activity_name,
+    description: document.getElementById('a_desc').value.trim(),
+    activity_date, start_time, end_time,
+    deadline: document.getElementById('a_deadline').value || null,
+    amount,
+    amount_paid: Math.min(Number(document.getElementById('a_paid').value)||0, 999999999),
+    submission_status: document.getElementById('a_substatus').value,
+    reminder_settings: Array.from(document.querySelectorAll('#activityOverlay .reminder-opts input:checked')).map(cb=>cb.value),
+    notes: document.getElementById('a_notes').value.trim(),
+    created_at: (existing && existing.created_at) || todayStr(),
+  };
+  const btn = document.getElementById('saveActivityBtn'); btn.disabled = true;
+  try{
+    if(id){ await dbSet('activities', id, payload); toast('Activity updated'); }
+    else { await dbAdd('activities', payload); toast('Activity added'); }
+    closeModal('activityOverlay'); renderView();
+  }catch(e){ toast(dbErrorMessage(e)); }
+  btn.disabled = false;
+});
+async function deleteActivity(id){
+  if(!confirm('Delete this activity? This cannot be undone.')) return;
+  try{
+    for(const p of paymentsOf(id)){ await dbDelete('payments', p.id); }
+    await dbDelete('activities', id);
+    toast('Activity deleted'); renderView();
+  }catch(e){ toast(dbErrorMessage(e)); }
+}
+async function markSubmitted(id){
+  const a = DB.activities.find(x=>x.id===id); if(!a) return;
+  const newStatus = isOverdue(a) ? 'Late Submission' : 'Submitted';
+  try{ await dbUpdate('activities', id, {submission_status:newStatus}); toast('Marked as submitted'); renderView(); }
+  catch(e){ toast(dbErrorMessage(e)); }
+}
+
+/* =========================================================
+   CRUD: PAYMENTS
+========================================================= */
+function openRecordPayment(activityId){
+  const a = DB.activities.find(x=>x.id===activityId); if(!a) return;
+  const c = clientById(a.client_id);
+  document.getElementById('p_activity_id').value = activityId;
+  document.getElementById('p_summary').innerHTML = `<b>${escapeHtml(c?.name||'')}</b> — ${escapeHtml(a.activity_name)}<br>Charged ${money(a.amount)} · Paid so far ${money(a.amount_paid)} · Balance <b>${money(balanceOf(a))}</b>`;
+  document.getElementById('p_amount').value = balanceOf(a) || '';
+  document.getElementById('p_date').value = todayStr();
+  document.getElementById('p_method').value = 'Cash';
+  document.getElementById('p_notes').value = '';
+  openModal('paymentOverlay');
+}
+document.getElementById('savePaymentBtn').addEventListener('click', async ()=>{
+  const activityId = document.getElementById('p_activity_id').value;
+  const a = DB.activities.find(x=>x.id===activityId); if(!a) return;
+  const amount = Number(document.getElementById('p_amount').value)||0;
+  if(amount<=0){ toast('Enter a valid amount'); return; }
+  const payment_date = document.getElementById('p_date').value || todayStr();
+  const newPaid = Math.min((Number(a.amount_paid)||0) + amount, a.amount);
+  const btn = document.getElementById('savePaymentBtn'); btn.disabled = true;
+  try{
+    await dbAdd('payments', {activity_id:activityId, amount, payment_date, payment_method:document.getElementById('p_method').value, notes:document.getElementById('p_notes').value.trim()});
+    await dbUpdate('activities', activityId, {amount_paid:newPaid});
+    closeModal('paymentOverlay'); toast('Payment recorded'); renderView();
+  }catch(e){ toast(dbErrorMessage(e)); }
+  btn.disabled = false;
+});
+
+/* =========================================================
+   ACTIVITY DETAIL VIEW
+========================================================= */
+function openDetail(id){
+  const a = DB.activities.find(x=>x.id===id); if(!a) return;
+  const c = clientById(a.client_id);
+  const sub = submissionDisplay(a), pay = paymentStatusOf(a), bal = balanceOf(a);
+  const pays = paymentsOf(a.id);
+  document.getElementById('detailBody').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      <div>
+        <div style="font-weight:700;font-size:16px;color:var(--ink);">${escapeHtml(a.activity_name)}</div>
+        <div style="font-size:13.5px;color:var(--text-soft);margin-top:2px;">${escapeHtml(c?.name||'')}</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <span class="badge dot ${badgeForSubmission(sub)}">${sub}</span>
+        <span class="badge dot ${badgeForPayment(pay)}">${pay}</span>
+      </div>
+    </div>
+    ${a.description?`<p style="font-size:13.5px;color:var(--text-soft);margin-bottom:14px;">${escapeHtml(a.description)}</p>`:''}
+    <div class="profile-stats" style="margin-bottom:14px;">
+      <div class="pstat"><div class="l">Date</div><div class="v" style="font-size:14px;">${fmtDateHuman(a.activity_date)}</div></div>
+      <div class="pstat"><div class="l">Time</div><div class="v" style="font-size:14px;">${fmtTime12(a.start_time)}–${fmtTime12(a.end_time)}</div></div>
+      <div class="pstat"><div class="l">Amount</div><div class="v" style="font-size:14px;">${money(a.amount)}</div></div>
+      <div class="pstat"><div class="l">Balance</div><div class="v" style="font-size:14px;color:${bal>0?'var(--red)':'var(--green)'}">${money(bal)}</div></div>
+    </div>
+    ${a.deadline?`<div class="hint" style="margin-bottom:10px;">Deadline: ${new Date(a.deadline).toLocaleString('en-GB',{dateStyle:'medium', timeStyle:'short'})}</div>`:''}
+    ${a.notes?`<div style="background:var(--floor);padding:10px 14px;border-radius:10px;font-size:13px;color:var(--text-soft);margin-bottom:14px;">${escapeHtml(a.notes)}</div>`:''}
+    <div style="font-weight:600;font-size:13px;color:var(--ink);margin-bottom:8px;">Payments recorded</div>
+    ${pays.length ? pays.map(p=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid var(--line);"><span>${fmtDateHuman(p.payment_date)} · ${escapeHtml(p.payment_method||'')}</span><span style="font-weight:600;">${money(p.amount)}</span></div>`).join('') : `<div style="font-size:13px;color:var(--text-faint);">No payments recorded yet.</div>`}
+  `;
+  document.getElementById('detailFoot').innerHTML = `
+    <button class="btn btn-outline" data-edit-activity="${a.id}">${ICONS.edit} Edit</button>
+    <button class="btn btn-ghost" data-record-payment="${a.id}">${ICONS.cash} Record payment</button>
+    <button class="btn btn-primary" data-mark-submitted="${a.id}">${ICONS.check} Mark submitted</button>
+  `;
+  openModal('detailOverlay');
+  bindDynamicButtons(document.getElementById('detailOverlay'));
+}
+
+/* =========================================================
+   EVENT BINDING (delegated per render)
+========================================================= */
+function bindDynamicButtons(root){
+  root.querySelectorAll('[data-view-activity]').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); openDetail(b.dataset.viewActivity); }));
+  root.querySelectorAll('[data-edit-activity]').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); closeModal('detailOverlay'); openEditActivity(b.dataset.editActivity); }));
+  root.querySelectorAll('[data-delete-activity]').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); deleteActivity(b.dataset.deleteActivity); }));
+  root.querySelectorAll('[data-mark-submitted]').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); closeModal('detailOverlay'); markSubmitted(b.dataset.markSubmitted); }));
+  root.querySelectorAll('[data-record-payment]').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); closeModal('detailOverlay'); openRecordPayment(b.dataset.recordPayment); }));
+  root.querySelectorAll('[data-edit-client]').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); openEditClient(b.dataset.editClient); }));
+  root.querySelectorAll('[data-delete-client]').forEach(b=>b.addEventListener('click', (e)=>{ e.stopPropagation(); deleteClient(b.dataset.deleteClient); }));
+}
+function bindViewEvents(){
+  const content = document.getElementById('content');
+  bindDynamicButtons(content);
+  // rows/cards clickable to open detail
+  content.querySelectorAll('.arow').forEach(el=>el.addEventListener('click', (e)=>{ if(e.target.closest('button')) return; openDetail(el.dataset.activity); }));
+  content.querySelectorAll('.reminder-card').forEach(el=>el.addEventListener('click', ()=> openDetail(el.dataset.activity)));
+  content.querySelectorAll('[data-client]').forEach(el=>el.addEventListener('click', ()=>{ currentClientProfile = el.dataset.client; renderView(); }));
+  content.querySelectorAll('[data-cal-day]').forEach(el=>el.addEventListener('click', ()=>{ calAnchor = new Date(el.dataset.calDay+'T00:00:00'); calView='day'; renderView(); }));
+
+  const backBtn = document.getElementById('backToClientsBtn');
+  if(backBtn) backBtn.addEventListener('click', ()=>{ currentClientProfile=null; renderView(); });
+
+  const openAddClientBtn = document.getElementById('openAddClientBtn');
+  if(openAddClientBtn) openAddClientBtn.addEventListener('click', openAddClient);
+
+  const clientSearchInput = document.getElementById('clientSearchInput');
+  if(clientSearchInput) clientSearchInput.addEventListener('input', (e)=>{ clientSearchTerm = e.target.value; renderView(); preserveFocus(clientSearchInput); });
+
+  const actSearchInput = document.getElementById('actSearchInput');
+  if(actSearchInput) actSearchInput.addEventListener('input', (e)=>{ actFilters.search = e.target.value; renderView(); preserveFocus(actSearchInput); });
+  const actClientFilter = document.getElementById('actClientFilter');
+  if(actClientFilter) actClientFilter.addEventListener('change', (e)=>{ actFilters.client = e.target.value; renderView(); });
+  const actSubFilter = document.getElementById('actSubFilter');
+  if(actSubFilter) actSubFilter.addEventListener('change', (e)=>{ actFilters.submission = e.target.value; renderView(); });
+  const actPayFilter = document.getElementById('actPayFilter');
+  if(actPayFilter) actPayFilter.addEventListener('change', (e)=>{ actFilters.payment = e.target.value; renderView(); });
+
+  document.querySelectorAll('[data-calview]').forEach(b=>b.addEventListener('click', ()=>{ calView = b.dataset.calview; renderView(); }));
+  const calPrev = document.getElementById('calPrev');
+  if(calPrev) calPrev.addEventListener('click', ()=>{ shiftCal(-1); renderView(); });
+  const calNext = document.getElementById('calNext');
+  if(calNext) calNext.addEventListener('click', ()=>{ shiftCal(1); renderView(); });
+  const calToday = document.getElementById('calToday');
+  if(calToday) calToday.addEventListener('click', ()=>{ calAnchor = new Date(); renderView(); });
+
+  const reportRangeSel = document.getElementById('reportRangeSel');
+  if(reportRangeSel) reportRangeSel.addEventListener('change', (e)=>{ reportRange = e.target.value; renderView(); });
+  const reportStart = document.getElementById('reportStart');
+  if(reportStart) reportStart.addEventListener('change', (e)=>{ reportCustomStart = e.target.value; renderView(); });
+  const reportEnd = document.getElementById('reportEnd');
+  if(reportEnd) reportEnd.addEventListener('change', (e)=>{ reportCustomEnd = e.target.value; renderView(); });
+  const exportCsvBtn = document.getElementById('exportCsvBtn');
+  if(exportCsvBtn) exportCsvBtn.addEventListener('click', exportCsv);
+
+  const resetSampleBtn = document.getElementById('resetSampleBtn');
+  if(resetSampleBtn) resetSampleBtn.addEventListener('click', async ()=>{
+    if(!confirm('Reset all data to the original sample data? This replaces everything currently saved.')) return;
+    resetSampleBtn.disabled = true;
+    try{
+      await apiSend('POST', '/reset-sample');
+      await loadAll();
+      toast('Reset to sample data'); renderView();
+    }catch(e){ toast(dbErrorMessage(e)); }
+    resetSampleBtn.disabled = false;
+  });
+  const clearAllBtn = document.getElementById('clearAllBtn');
+  if(clearAllBtn) clearAllBtn.addEventListener('click', async ()=>{
+    if(!confirm('Clear all clients and activities? This cannot be undone.')) return;
+    clearAllBtn.disabled = true;
+    try{
+      await apiSend('POST', '/clear');
+      await loadAll();
+      toast('All data cleared'); renderView();
+    }catch(e){ toast(dbErrorMessage(e)); }
+    clearAllBtn.disabled = false;
+  });
+}
+function preserveFocus(el){ setTimeout(()=>{ const fresh = document.getElementById(el.id); if(fresh){ fresh.focus(); const v=fresh.value; fresh.value=''; fresh.value=v; } },0); }
+function shiftCal(dir){
+  const d = new Date(calAnchor);
+  if(calView==='month') d.setMonth(d.getMonth()+dir);
+  else if(calView==='week') d.setDate(d.getDate()+7*dir);
+  else d.setDate(d.getDate()+dir);
+  calAnchor = d;
+}
+
+document.getElementById('addActivityBtn').addEventListener('click', openAddActivity);
+
+/* =========================================================
+   INIT
+========================================================= */
+initApp();
+</script>
+</body>
+</html>

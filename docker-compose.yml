@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      # Keeps your SQLite database on the host machine, outside the
+      # container, so it survives "docker compose down" and rebuilds.
+      - ./data:/app/data
+    restart: unless-stopped
